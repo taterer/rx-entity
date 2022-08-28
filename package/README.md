@@ -14,3 +14,8 @@ It can be useful to start with an event storm. Define as many events as can easi
 Next, move onto the event handlers. Create an event.ts file. Start with the domain entity itself, what is the resulting object that changes over time? With that interface defined, then create an EntityEventHandlers object, which will have a function to handle every command created previously. Each function should return a new entity with the desired updates. This is then wrapped into a service with your chosen persistence.
 
 Last, create a query.ts file. This is where it can be useful to pull in a lot of entities (without changing them) to display to the user, or use in some other way. This step is not crucial, and can be done later, if ever.
+
+The point of this engine is to isolate domain logic, and limit places for side effects. Persistence is managed within the service framework, but where should other side effects go? For aggregates, or api calls to other services, or to other domains. 
+
+## Example
+For an example output from an event storm, and event handlers. Checkout the example found at https://github.com/taterer/rx-entity

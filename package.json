@@ -1,0 +1,45 @@
+{
+  "name": "@taterer/rx-entity",
+  "version": "1.0.0",
+  "description": "Rx entity service framework",
+  "scripts": {
+    "build": "parcel build",
+    "test": "jest"
+  },
+  "source": "src/index.ts",
+  "main": "dist/index.js",
+  "author": "Taylor McKay",
+  "bugs": {
+    "url": "https://github.com/taterer/rx-entity/issues"
+  },
+  "homepage": "https://taterer.github.io/rx-entity/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taterer/rx-entity.git"
+  },
+  "keywords": [
+    "entity",
+    "service",
+    "framework",
+    "behavior",
+    "functional",
+    "reactive",
+    "rxjs"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@taterer/persist-memory": "^1.0.5",
+    "@types/jest": "^27.5.1",
+    "jest": "^28.1.0",
+    "parcel": "^2.7.0",
+    "rxjs": "^7.5.6",
+    "ts-jest": "^28.0.3",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.3"
+  },
+  "peerDependencies": {
+    "@taterer/persist": "^1",
+    "rxjs": "^7"
+  },
+  "dependencies": {}
+}
