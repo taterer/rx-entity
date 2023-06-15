@@ -1,53 +1,72 @@
-import { BehaviorSubject, concatMap, filter, from, Observable, pipe, share, Subject, takeUntil, UnaryFunction, withLatestFrom } from "rxjs"
-import { Persistable, Persistence } from "@taterer/persist"
+import { Persistable, Persistence } from '@taterer/persist';
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  UnaryFunction,
+  concatMap,
+  filter,
+  from,
+  pipe,
+  share,
+  takeUntil,
+  withLatestFrom
+} from 'rxjs';
 
 export interface Meta {
-  entity: string
-  eventType: string
+  entity: string;
+  eventType: string;
 }
 
 /**
  * EntityEventHandlers should handle every type of entity event, and all of these event handlers should be as pure as possible (no side effects; ID/time may make it less than deterministic).
  */
 export type EntityEventHandlers<Entity, EntityEventType extends string> = {
-  [key in EntityEventType]: (entity: Entity, event: any) => Entity
-}
+  [key in EntityEventType]: (entity: Entity | undefined, event: any) => Entity;
+};
 
 /**
  * SideEventHandlers should handle any entity event which needs to reach beyond the scope of the entity domain (EG: emitting events to another domain)
  */
 export type SideEventHandlers<Entity, EntityEventType extends string> = {
-  [key in EntityEventType]?: (originalEntity: Entity, event: any, updatedEntity: Entity) => Entity
-}
+  [key in EntityEventType]?: (originalEntity: Entity, event: any, updatedEntity: Entity) => Entity;
+};
 
-export function subjectFactory<T> (defaultValue?: T): [Observable<T>, (event: T) => void] {
-  const subject$ = defaultValue ? new BehaviorSubject<T>(defaultValue) : new Subject<T>()
+export function subjectFactory<T>(defaultValue?: T): [Observable<T>, (event: T) => void] {
+  const subject$ = defaultValue ? new BehaviorSubject<T>(defaultValue) : new Subject<T>();
 
-  function addEvent (event: T) {
-    subject$.next(event)
+  function addEvent(event: T) {
+    subject$.next(event);
   }
 
-  return [
-    subject$.asObservable(),
-    addEvent
-  ]
+  return [subject$.asObservable(), addEvent];
 }
 
-export function addMeta<T> (event: T, meta: Meta) {
-  return { ...event, meta }
+export function addMeta<T>(event: T, meta: Meta) {
+  return { ...event, meta };
 }
 
-export function eventFactory<T> (meta: Meta, defaultValue?: T & { meta: Meta }): [Observable<T & { meta: Meta }>, (event: T) => void] {
-  const subject$ = defaultValue ? new BehaviorSubject<T & { meta: Meta }>(defaultValue) : new Subject<T & { meta: Meta }>()
+export function eventFactory<T>(
+  meta: Meta,
+  defaultValue?: T & { meta: Meta }
+): [Observable<T & { meta: Meta }>, (event: T) => void] {
+  const subject$ = defaultValue
+    ? new BehaviorSubject<T & { meta: Meta }>(defaultValue)
+    : new Subject<T & { meta: Meta }>();
 
-  function addEvent (event: T) {
-    subject$.next(addMeta(event, meta))
+  function addEvent(event: T) {
+    subject$.next(addMeta(event, meta));
   }
 
-  return [
-    subject$.asObservable(),
-    addEvent,
-  ]
+  return [subject$.asObservable(), addEvent];
+}
+
+export function commandFactory<T>(params: Meta & { command$: Subject<any> }): (event: T) => void {
+  function command(event: T) {
+    params.command$.next(addMeta(event, { eventType: params.eventType, entity: params.entity }));
+  }
+
+  return command;
 }
 
 /**
@@ -57,40 +76,42 @@ export function eventFactory<T> (meta: Meta, defaultValue?: T & { meta: Meta }):
  * @param eventHandlers Object map with handlers for each entity event
  * @param event Entity event to be handled
  * @param sideHandlers Object map with handlers for coordinating beyond the scope of the entity (other entities/services)
- * @returns 
+ * @returns
  */
- export async function entityEventHandler<EventType extends { id: string, meta: Meta }, EntityType, PersistenceEntityType> (
+export async function entityEventHandler<
+  EventType extends { id: string; meta: Meta },
+  EntityType,
+  PersistenceEntityType
+>(
   persistence: Persistence<EntityType, PersistenceEntityType>,
   entityPersistence: PersistenceEntityType,
-  eventHandlers: { [key: string]: (entity: EntityType, event: EventType | [EventType, ...any]) => EntityType },
-  event: EventType | [EventType, ...any],
-  sideHandlers?: { [key: string]: (entity: EntityType, event: EventType | [EventType, ...any], updatedEntity: EntityType) => Promise<EntityType> | EntityType }
-  ): Promise<EntityType & { meta: { entity: PersistenceEntityType, eventType }}> {
-  const eventId = Array.isArray(event) ? event[0].id : event.id
-  const eventType = Array.isArray(event) ? event[0].meta.eventType : event.meta.eventType
-  let currentEntity
+  eventHandlers: {
+    [key: string]: (entity: EntityType | undefined, event: EventType | [EventType, ...any]) => EntityType;
+  },
+  event: EventType | [EventType, ...any]
+): Promise<EntityType & { meta: { entity: PersistenceEntityType; eventType: string } }> {
+  const eventId = Array.isArray(event) ? event[0].id : event.id;
+  const eventType = Array.isArray(event) ? event[0].meta.eventType : event.meta.eventType;
+  let currentEntity;
   try {
-    currentEntity = await persistence.get(entityPersistence, eventId)
+    currentEntity = await persistence.get(entityPersistence, eventId);
   } catch (err) {
-    // continue if it's an add, otherwise throw
-    if (eventType !== 'add') {
-      throw err
+    // continue if it's new, otherwise throw
+    if (eventType !== 'new') {
+      throw err;
     }
   }
-  const updatedEntity = eventHandlers[eventType](currentEntity, event)
-  let handledEntity = updatedEntity as EntityType & { id?: string, deleted?: boolean }
-  if (sideHandlers && sideHandlers[eventType]) {
-    handledEntity = await sideHandlers[eventType](currentEntity, event, updatedEntity)
-  }
+  const updatedEntity = eventHandlers[eventType](currentEntity, event);
+  const handledEntity = updatedEntity as EntityType & { deleted?: boolean; id?: string };
   if (handledEntity.deleted) {
-    await persistence.remove(entityPersistence, { id: eventId })
+    await persistence.remove(entityPersistence, { id: eventId });
   } else {
     if (!handledEntity.id) {
-      throw new Error('Cannot save entity without an id. Consider putting id explicitly in the event handler.')
+      throw new Error('Cannot save entity without an id. Consider putting id explicitly in the event handler.');
     }
-    await persistence.put(entityPersistence, { id: handledEntity.id }, handledEntity)
+    await persistence.put(entityPersistence, { id: handledEntity.id }, handledEntity);
   }
-  return { ...handledEntity, meta: { entity: entityPersistence, eventType } }
+  return { ...handledEntity, meta: { entity: entityPersistence, eventType } };
 }
 
 /**
@@ -99,41 +120,42 @@ export function eventFactory<T> (meta: Meta, defaultValue?: T & { meta: Meta }):
  * @param persistence$ Observable form of persistence
  * @param entityPersistence The persistence type of the entity
  * @param eventHandlers Object map with handlers for each entity event
- * @param sideHandlers Object map with handlers for coordinating beyond the scope of the entity (other entities/services)
  * @returns OperatorFunction, events come in, updated entity comes out
  */
- export function entityServiceFactory<EntityType, PersistenceEntityType>(
+export function entityServiceFactory<EntityType, PersistenceEntityType>(
   persistence$: Observable<Persistence<any & Persistable, PersistenceEntityType>>,
   entityPersistence: PersistenceEntityType,
-  eventHandlers: { [key: string]: (entity: EntityType, event: any) => EntityType },
-  sideHandlers?: { [key: string]: (entity: EntityType, event: any, updatedEntity: EntityType) => Promise<EntityType> | EntityType }
-  ) {
+  eventHandlers: { [key: string]: (entity: EntityType | undefined, event: any) => EntityType }
+) {
   return pipe(
     withLatestFrom(persistence$),
-    concatMap<[any, Persistence<any & Persistable, PersistenceEntityType>], Observable<EntityType & { meta: { entity: PersistenceEntityType, eventType }}>>(([event, persistence]) => {
-      return from(entityEventHandler(persistence, entityPersistence, eventHandlers, event, sideHandlers))
+    concatMap<
+      [any, Persistence<any & Persistable, PersistenceEntityType>],
+      Observable<EntityType & { meta: { entity: PersistenceEntityType; eventType: string } }>
+    >(([event, persistence]) => {
+      return from(entityEventHandler(persistence, entityPersistence, eventHandlers, event));
     }),
     share()
-  )
+  );
 }
 
 /**
  * Deduplicates events for the lifetime of the pipe
  * @returns OperatorFunction
  */
-export function filterPreviouslySeenIds<T> (): UnaryFunction<Observable<T & Persistable>, Observable<T & Persistable>> {
-  const map = new Map()
+export function filterPreviouslySeenIds<T>(): UnaryFunction<Observable<T & Persistable>, Observable<T & Persistable>> {
+  const map = new Map();
   return pipe(
     filter((event: T & Persistable) => {
-      const hasId = map.has(event.id)
+      const hasId = map.has(event.id);
       if (hasId) {
-        return false
+        return false;
       } else {
-        map.set(event.id, true)
-        return true
+        map.set(event.id, true);
+        return true;
       }
     })
-  )
+  );
 }
 
 /**
@@ -142,10 +164,12 @@ export function filterPreviouslySeenIds<T> (): UnaryFunction<Observable<T & Pers
  * @param destruction$ Observable that will destroy created subscriptions on emission
  * @param mapFunction Optional function to use while creating subscriptions
  */
-export function subscriptionFactory (observables: Observable<any>[], destruction$: Observable<any>, mapFunction?: (value: any) => void) {
+export function subscriptionFactory(
+  observables: Observable<any>[],
+  destruction$: Observable<any>,
+  mapFunction?: (value: any) => void
+) {
   observables.forEach((obs) => {
-    obs
-    .pipe(takeUntil(destruction$))
-    .subscribe(mapFunction)
-  })
+    obs.pipe(takeUntil(destruction$)).subscribe(mapFunction);
+  });
 }
