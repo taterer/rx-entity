@@ -10,26 +10,21 @@ import {
   pipe,
   share,
   takeUntil,
-  withLatestFrom
+  withLatestFrom,
 } from 'rxjs';
 
-export interface Meta {
+export type Meta = {
   entity: string;
   eventType: string;
-}
+};
+
+export type EntityEventHandler<Entity> = (entity: Entity | undefined, event: any) => Entity;
 
 /**
  * EntityEventHandlers should handle every type of entity event, and all of these event handlers should be as pure as possible (no side effects; ID/time may make it less than deterministic).
  */
 export type EntityEventHandlers<Entity, EntityEventType extends string> = {
-  [key in EntityEventType]: (entity: Entity | undefined, event: any) => Entity;
-};
-
-/**
- * SideEventHandlers should handle any entity event which needs to reach beyond the scope of the entity domain (EG: emitting events to another domain)
- */
-export type SideEventHandlers<Entity, EntityEventType extends string> = {
-  [key in EntityEventType]?: (originalEntity: Entity, event: any, updatedEntity: Entity) => Entity;
+  [key in EntityEventType]: EntityEventHandler<Entity>;
 };
 
 export function subjectFactory<T>(defaultValue?: T): [Observable<T>, (event: T) => void] {
@@ -125,7 +120,8 @@ export async function entityEventHandler<
 export function entityServiceFactory<EntityType, PersistenceEntityType>(
   persistence$: Observable<Persistence<any & Persistable, PersistenceEntityType>>,
   entityPersistence: PersistenceEntityType,
-  eventHandlers: { [key: string]: (entity: EntityType | undefined, event: any) => EntityType }
+  eventHandlers: { [key: string]: (entity: EntityType | undefined, event: any) => EntityType },
+  eventHandlerWrapper?: (wrapper: () => EntityEventHandler<EntityType>) => EntityEventHandler<EntityType>
 ) {
   return pipe(
     withLatestFrom(persistence$),
@@ -133,6 +129,13 @@ export function entityServiceFactory<EntityType, PersistenceEntityType>(
       [any, Persistence<any & Persistable, PersistenceEntityType>],
       Observable<EntityType & { meta: { entity: PersistenceEntityType; eventType: string } }>
     >(([event, persistence]) => {
+      if (eventHandlerWrapper) {
+        const wrappedEventHandlers = Object.keys(eventHandlers).reduce((acc, key) => {
+          acc[key] = eventHandlerWrapper(() => eventHandlers[key]);
+          return acc;
+        }, {} as { [key: string]: (entity: EntityType | undefined, event: any) => EntityType });
+        return from(entityEventHandler(persistence, entityPersistence, wrappedEventHandlers, event));
+      }
       return from(entityEventHandler(persistence, entityPersistence, eventHandlers, event));
     }),
     share()

@@ -766,17 +766,17 @@
   dependencies:
     tslib "^2.4.0"
 
-"@taterer/persist-memory@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@taterer/persist-memory/-/persist-memory-1.0.5.tgz#f540d1ac0ab34cbc5ee42f89d320f51214352f30"
-  integrity sha512-2BhrD+2wWCXFlZkuZY32ir+iPsYT0rLkqNaI1GYhzTPAZPab1sV5PUUrUuNdj0Ed+HEsoqCjLXd84G/ZvmJg6A==
+"@taterer/persist-memory@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@taterer/persist-memory/-/persist-memory-2.0.0.tgz#ca82b5b7d96aaf1c387a4579b1a19bf827028e6b"
+  integrity sha512-9sK2E1auB1uEZLTzwJyvISWnaLMw+YwPA3+N9YAcn7B56KeBtJ7lhJLCdIoKH577/cQO/lJS3LRwgl8VcDAe5A==
   dependencies:
-    "@taterer/persist" "^1.0.3"
+    "@taterer/persist" "^2.0.0"
 
-"@taterer/persist@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@taterer/persist/-/persist-1.0.3.tgz#31ec6b06b9f72672fe6e82d9c4704d11ca555833"
-  integrity sha512-uJtSbRpf6yeMqtbGsjAyEfOhXdZuNTglMTkJSvMN1X7NGTk/ebuCrge5aW5Mt8hrJdB2HUhiTbrMBUWBLVXdhg==
+"@taterer/persist@^2.0.0":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@taterer/persist/-/persist-2.0.1.tgz#73c17d439497dd31a81e53b40349c0216d459ce2"
+  integrity sha512-T2PB1RMG2F/Vj8YkhFFFU8ZAxPL7RO3czwHwjDnDKNIL/k2daZg5yivGRzwFoTX/6AU8wTK37n8K/Memv+osBg==
   dependencies:
     uuid "^8.3.2"
 
@@ -847,9 +847,9 @@ callsites@^3.0.0:
   integrity sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==
 
 caniuse-lite@^1.0.30001370:
-  version "1.0.30001384"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001384.tgz#029527c2d781a3cfef13fa63b3a78a6088e35973"
-  integrity sha512-BBWt57kqWbc0GYZXb47wTXpmAgqr5LSibPzNjk/AWMdmJMQhLqOl3c/Kd4OAU/tu4NLfYkMx8Tlq3RVBkOBolQ==
+  version "1.0.30001505"
+  resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001505.tgz"
+  integrity sha512-jaAOR5zVtxHfL0NjZyflVTtXm3D3J9P15zSJ7HmQF8dSKGA6tqzQq+0ZI3xkjyQj46I4/M0K2GbMpcAFOcbr3A==
 
 chalk@^2.0.0:
   version "2.4.2"
