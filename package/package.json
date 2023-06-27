@@ -1,6 +1,6 @@
 {
   "name": "@taterer/rx-entity",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Rx entity service framework",
   "scripts": {
     "build": "parcel build"
